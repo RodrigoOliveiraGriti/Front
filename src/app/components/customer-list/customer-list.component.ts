@@ -1,39 +1,90 @@
-import { Component, OnInit } from '@angular/core';
-import { CustomerService } from '../../customer.service'; // Caminho correto
+import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { CustomerService } from '../../customer.service';
+import { interval, Subscription } from 'rxjs';
+import { startWith, mergeMap } from 'rxjs/operators';
+import { Customer } from '../../customer.model';
 
 @Component({
-  selector: 'app-customer-list',
+  selector: 'app-cliente-tabela',
   standalone: true,
+  imports: [CommonModule],
   templateUrl: './customer-list.component.html',
   styleUrls: ['./customer-list.component.css']
 })
-export class CustomerListComponent implements OnInit {
-  customers: any[] = []; // Array para armazenar os dados dos clientes
+export class CustomerListComponent implements OnInit, OnDestroy {
+  clientes: Customer[] = [];
+  carregando: boolean = true;
+  private sub: Subscription | null = null;
 
-  // Injetando o CustomerService no construtor
-  constructor(private customerService: CustomerService) { }
+  constructor(
+    private clienteService: CustomerService,
+    private ngZone: NgZone
+  ) { }
 
-  // Usando o ngOnInit para chamar a API assim que o componente for inicializado
   ngOnInit(): void {
-    this.customerService.getCustomers().subscribe(
-      (data) => {
-        this.customers = data; // Atribuindo os dados recebidos à variável customers
-      },
-      (error) => {
-        console.error('Erro ao carregar clientes', error); // Tratamento de erro
-      }
-    );
+    this.iniciarAtualizacaoPeriodica();
   }
 
-  // 🛠️ Corrigindo a posição da função deleteCustomer
-  deleteCustomer(id: number): void {
+  ngOnDestroy(): void {
+    if (this.sub) {
+      this.sub.unsubscribe();
+    }
+  }
+
+  iniciarAtualizacaoPeriodica(): void {
+    this.carregando = true;
+    
+    this.ngZone?.runOutsideAngular(() => {
+      this.sub = interval(30 * 1000)
+        .pipe(
+          startWith(0),
+          mergeMap(() => this.clienteService.getCustomers())
+        )
+        .subscribe({
+          next: (data: Customer[]) => {
+            this.ngZone.run(() => {
+              this.clientes = data;
+              this.carregando = false;
+            });
+          },
+          error: (erro: any) => {
+            this.ngZone.run(() => {
+              console.error('Erro ao carregar clientes:', erro);
+              this.carregando = false;
+            });
+          }
+        });
+    });
+  }
+
+  editarCliente(id: number): void {
+    console.log(`Editar cliente com ID: ${id}`);
+  }
+
+  excluirCliente(id: number): void {
     if (confirm('Tem certeza que deseja excluir este cliente?')) {
-      this.customerService.deleteCustomer(id).subscribe(() => {
-        // Remove o cliente do array após a exclusão
-        this.customers = this.customers.filter(c => c.id !== id);
-      }, error => {
-        console.error('Erro ao excluir cliente', error);
+      this.clienteService.deleteCustomer(id).subscribe({
+        next: () => {
+          // Reinicia a atualização periódica após exclusão
+          if (this.sub) {
+            this.sub.unsubscribe();
+          }
+          this.iniciarAtualizacaoPeriodica();
+        },
+        error: (erro: any) => {
+          console.error('Erro ao excluir cliente:', erro);
+        }
       });
     }
+  }
+
+  formatarData(data: string): string {
+    return new Date(data).toLocaleDateString('pt-BR');
+  }
+
+  adicionarNovoCliente(): void {
+    console.log('Adicionar novo cliente');
   }
 }

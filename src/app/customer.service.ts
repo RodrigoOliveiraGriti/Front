@@ -1,12 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { Customer } from './customer.model';
+
 
 @Injectable({
   providedIn: 'root'
 })
 export class CustomerService {
-  private apiUrl = 'http://localhost:5030/api/customers'; // URL da sua API
+  private apiUrl = 'http://localhost:5030/api/Customer';
 
   constructor(private http: HttpClient) { }
 
@@ -14,11 +16,11 @@ export class CustomerService {
     return this.http.get(this.apiUrl);
   }
 
-  createCustomer(customer: any): Observable<any> {
+  createCustomer(customer: Customer): Observable<any> {
     return this.http.post(this.apiUrl, customer);
   }
 
-  updateCustomer(id: number, customer: any): Observable<any> {
+  updateCustomer(id: number, customer: Customer): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}`, customer);
   }
 
