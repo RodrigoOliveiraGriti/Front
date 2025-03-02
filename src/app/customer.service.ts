@@ -16,6 +16,10 @@ export class CustomerService {
     return this.http.get(this.apiUrl);
   }
 
+  getCustomerById(id: number): Observable<Customer> {
+    return this.http.get<Customer>(`${this.apiUrl}/${id}`);
+  }
+
   createCustomer(customer: Customer): Observable<any> {
     return this.http.post(this.apiUrl, customer);
   }

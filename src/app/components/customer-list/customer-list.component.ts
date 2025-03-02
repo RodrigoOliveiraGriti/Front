@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
+import { Router } from '@angular/router';
 import { CustomerService } from '../../customer.service';
 import { interval, Subscription } from 'rxjs';
 import { startWith, mergeMap } from 'rxjs/operators';
@@ -20,7 +20,8 @@ export class CustomerListComponent implements OnInit, OnDestroy {
 
   constructor(
     private clienteService: CustomerService,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -36,7 +37,7 @@ export class CustomerListComponent implements OnInit, OnDestroy {
   iniciarAtualizacaoPeriodica(): void {
     this.carregando = true;
     
-    this.ngZone?.runOutsideAngular(() => {
+    this.ngZone.runOutsideAngular(() => {
       this.sub = interval(30 * 1000)
         .pipe(
           startWith(0),
@@ -60,14 +61,13 @@ export class CustomerListComponent implements OnInit, OnDestroy {
   }
 
   editarCliente(id: number): void {
-    console.log(`Editar cliente com ID: ${id}`);
+    this.router.navigate(['/customers/editar', id]);
   }
 
   excluirCliente(id: number): void {
     if (confirm('Tem certeza que deseja excluir este cliente?')) {
       this.clienteService.deleteCustomer(id).subscribe({
         next: () => {
-          // Reinicia a atualização periódica após exclusão
           if (this.sub) {
             this.sub.unsubscribe();
           }
@@ -85,6 +85,6 @@ export class CustomerListComponent implements OnInit, OnDestroy {
   }
 
   adicionarNovoCliente(): void {
-    console.log('Adicionar novo cliente');
+    this.router.navigate(['/customers/novo']);
   }
 }
